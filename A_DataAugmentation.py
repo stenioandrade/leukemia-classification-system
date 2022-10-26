@@ -343,64 +343,69 @@ def createDatasets(trainSize, validationSize):
         countHEM = 0 #Count how many HEM cells has in 'augm_patLvDiv_train'
 
         #For each cell in 'patLvDiv_train' folder
-        #for cellpath in os.listdir(patLvDiv_train):
-        #    if 'all.bmp' in cellpath:
-        #        countALL += 1
-        #    elif 'hem.bmp' in cellpath:
-        #        countHEM += 1
-        #    else:
-        #        continue
+        for cellpath in os.listdir(patLvDiv_train):
+            if 'all.bmp' in cellpath:
+                countALL += 1
+            elif 'hem.bmp' in cellpath:
+                countHEM += 1
+            else:
+                continue
             #Copy cell into 'augm_patLvDiv_train' folder
-        #    shutil.copy2(patLvDiv_train/cellpath, augm_patLvDiv_train)
-        #    print(f'Copy {patLvDiv_train/cellpath} TO {augm_patLvDiv_train}/{cellpath}')
+            shutil.copy2(patLvDiv_train/cellpath, augm_patLvDiv_train)
+            print(f'Copy {patLvDiv_train/cellpath} TO {augm_patLvDiv_train}/{cellpath}')
 
         #Read all cells in 'patLvDiv_train' folder
         srcTrain = os.listdir(patLvDiv_train)
 
         train_df = pd.DataFrame()
 
-        #Until 'augm_patLvDiv_train' folder didn't reach desired size...
-        while len(os.listdir(augm_patLvDiv_train)) < trainSize:
-            #Randomly choose a cell from 'patLvDiv_train' folder
-            rndChoice = np.random.choice(srcTrain)
-            #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
-            if 'all.bmp' in rndChoice and countALL<trainSize//2:
-                countALL += 1
-            elif 'hem.bmp' in rndChoice and countHEM<trainSize//2:
-                countHEM += 1
-            else:
-                print('\nERROR in augm_patLvDiv_train')
-                print(f'Choice:{rndChoice}, countALL:{countALL}, countHEM:{countHEM}, trainSize//2:{trainSize//2}\n')
-                continue
-            #Create an augmented cell based on randomly choose from 'patLvDiv_train' folder
-            img = patLvDiv_train / rndChoice
-            try:
-                augmentationType = ''
-                aux = genAugmentedImage(cv2.imread(str(img)), img.name)
-                img = aux[0]
-                df = pd.DataFrame(aux[1])
-                train_df = train_df.append(df)
-                train_df.to_csv(f'AugmentationApplied/AugmentationTypesApplied_Train.csv')
-            except Exception as e:
-                print(str(e))
-                #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
-                if 'all.bmp' in rndChoice:
-                    countALL -= 1
-                elif 'hem.bmp' in rndChoice:
-                    countHEM -= 1
-                continue
 
-            #Save the augmented image into folder 'augm_patLvDiv_train'
-            savePath = augm_patLvDiv_train / f'AugmentedImg_{np.random.randint(1001, 9999)}_{rndChoice}'
-            if not os.path.isfile(savePath):
-                cv2.imwrite(str(savePath), img)
-                print(f'Created {savePath}')
-            else:
+        #Until 'augm_patLvDiv_train' folder didn't reach desired size...
+        
+        for src in srcTrain:
+            #while len(os.listdir(augm_patLvDiv_train)) < trainSize:
+            for i in range(trainSize):
+                #Randomly choose a cell from 'patLvDiv_train' folder
+                #rndChoice = np.random.choice(src)
                 #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
-                if 'all.bmp' in rndChoice:
-                    countALL -= 1
-                elif 'hem.bmp' in rndChoice:
-                    countHEM -= 1
+                if 'all.bmp' in src and countALL<trainSize//2:
+                    countALL += 1
+                elif 'hem.bmp' in src and countHEM<trainSize//2:
+                    countHEM += 1
+                else:
+                    print('\nERROR in augm_patLvDiv_train')
+                    print(f'Choice:{src}, countALL:{countALL}, countHEM:{countHEM}, trainSize//2:{trainSize//2}\n')
+                    continue
+
+                #Create an augmented cell based on randomly choose from 'patLvDiv_train' folder
+                img = patLvDiv_train / src
+                try:
+                    #Create an index with agmented image name
+                    agmentedImgName = f'AugmentedImg_{np.random.randint(1001, 9999)}_{src}'
+                    (img, df) = genAugmentedImage(cv2.imread(str(img)), img.name, agmentedImgName, i)
+                    train_df = train_df.append(df)
+                    #train_df['ImgName'].where(train_df['ImgName'].duplicated, train_df['ImgName'][:-2] + train_df['ImgName'][-2] + 1)
+                    train_df.to_csv(f'AugmentationApplied/AugmentationTypesApplied_Train.csv')
+                except Exception as e:
+                    print(str(e))
+                    #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
+                    if 'all.bmp' in src:
+                        countALL -= 1
+                    elif 'hem.bmp' in src:
+                        countHEM -= 1
+                    continue
+
+                #Save the augmented image into folder 'augm_patLvDiv_train'
+                savePath = augm_patLvDiv_train / agmentedImgName
+                if not os.path.isfile(savePath):
+                    cv2.imwrite(str(savePath), img)
+                    print(f'Created {savePath}')
+                else:
+                    #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
+                    if 'all.bmp' in src:
+                        countALL -= 1
+                    elif 'hem.bmp' in src:
+                        countHEM -= 1
 
         #cols = train_df.columns.tolist()
         #cols.remove('cellType(ALL=1, HEM=-1)')
