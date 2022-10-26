@@ -5,6 +5,7 @@ import shutil
 from rawDataHandler import patients as HandlePatients
 from pathlib import Path
 import multiprocessing
+import pandas as pd
 
 """
 Remove cell's background
@@ -101,7 +102,7 @@ def saltPepperNoise(image, salt_vs_pepper=0.2, amount=0.004):
 """
 Generate an Augmented Image base on srcImg
 """
-def genAugmentedImage(srcImg):
+def genAugmentedImage(srcImg, imgName, augmentedImgName, index):
     #Flip
     flipNum = int(np.random.choice([-1, 0, 1]))
     augm = cv2.flip(srcImg, flipNum)#horizontalANDVertical OR Horizontal OR vertical Flips
@@ -112,19 +113,85 @@ def genAugmentedImage(srcImg):
     augm = cv2.warpAffine(augm, rotationMatrix,(width, height))
     #Aditional Augmentation
     rnd = np.random.uniform(0.0, 1.0)
+
+    train_df = pd.DataFrame()
+
+    appliedFlipAndWarpAffine = True
+    appliedRotation = True
+    appliedShearImage = False
+    appliedSaltPepperNoise = False
+    appliedGaussianBlur = False
+
     #25% Only Flip+Rotation
     if rnd < 0.25:
-        return augm
-    #25% Flip+Rotation+Shear
+        appliedFlipAndWarpAffine = True
+        #return (augm, train_df)
+
+    #25% Flip+Rotation+Shear    
     if rnd >= 0.25 and rnd < 0.50:
         augm = shearImage(augm, s=(0.1, 0.35))
-    #25% Flip+Rotation+PepperSalt
+        appliedShearImage = True
+
+    #25% Flip+Rotation+PepperSalt+Gaussian
     if rnd >= 0.50 and rnd < 0.75:
         augm = saltPepperNoise(augm, salt_vs_pepper=0.50, amount = 0.05)
-    #25% Flip+GaussianBlur
-    if rnd >= 0.75:
+        appliedSaltPepperNoise = True        
+
         augm = cv2.GaussianBlur(augm,(5,5),0)
-    return augm
+        appliedGaussianBlur = True
+
+    #25% Flip+Rotation+Shear+GaussianBlur
+    if rnd >= 0.75:
+        augm = shearImage(augm, s=(0.1, 0.35))
+        appliedShearImage = True
+
+        augm = cv2.GaussianBlur(augm,(5,5),0)
+        appliedGaussianBlur = True
+
+    #Create folder 'data'
+    if not os.path.exists(Path('AugmentationApplied/')):
+        os.mkdir(Path('AugmentationApplied/'))
+
+    train_df = train_df.append({'ImgName': imgName,
+    'AugIndex': index,
+    'AugmentedImgName': augmentedImgName,
+    'Flip and WarpAffine': appliedFlipAndWarpAffine,
+    'Rotation': appliedRotation,
+    'ShearImage': appliedShearImage,
+    'SaltPepperNoise': appliedSaltPepperNoise,
+    'GaussianBlur': appliedGaussianBlur},
+    ignore_index=True)
+
+    train_df.set_index('ImgName')
+
+    #train_df.to_csv(f'AugmentationApplied/{imgName}.csv')
+
+    #with open('demo_csv1.csv', 'w') as f:
+    #    writer = csv.writer(f) #this is the writer object
+    #    writer.writerow(train_df) # this will list out the names of the columns which are always the first entrries
+    #    writer.writerow(data) #this is the data
+
+
+    #Aplicar mais de um augmentation ao mesmo tempo
+    #Representar no csv com as img em cada linha
+    #E os augmentations em cada coluna(bool)
+
+    #19/10/2022
+    #Adicionar coluna com nome da imagem augmentada
+    #Adicionar coluna com o multiplicador atual do agmentation (cada imagem gera outras 10 por exemplo, a qual multipla cada linha se refere)
+    #Ordenar pelo nome da imagem para termos suas multiplas em linhas sequenciais
+
+    #Criar index para img original
+    #Ajustar index do nome da imagem augmentada
+    #"%05d_%02d" % (i, j)
+    # "augm_%05d_%02d" % (i, j)
+    #"augm_%05d_%02d_%s" % (i, j, filename)
+    #Trazer as colunas da extração
+    #Trocar o separador de vírgula para tab (\t)
+
+    #train_df = train_df.groupby('ImgName')
+
+    return (augm, train_df)
 
 def createDatasets(trainSize, validationSize):
     patLvDiv_train = Path('data/patLvDiv_train/')
@@ -268,23 +335,29 @@ def createDatasets(trainSize, validationSize):
     """
     #Thread to create 'Augm_patLvDiv_train'
     def createAugm_patLvDiv_train():
+        def __init__(self):
+            self.train_df = pd.DataFrame()
+            pass
+
         countALL = 0 #Count how many ALL cells has in 'augm_patLvDiv_train'
         countHEM = 0 #Count how many HEM cells has in 'augm_patLvDiv_train'
 
         #For each cell in 'patLvDiv_train' folder
-        for cellpath in os.listdir(patLvDiv_train):
-            if 'all.bmp' in cellpath:
-                countALL += 1
-            elif 'hem.bmp' in cellpath:
-                countHEM += 1
-            else:
-                continue
+        #for cellpath in os.listdir(patLvDiv_train):
+        #    if 'all.bmp' in cellpath:
+        #        countALL += 1
+        #    elif 'hem.bmp' in cellpath:
+        #        countHEM += 1
+        #    else:
+        #        continue
             #Copy cell into 'augm_patLvDiv_train' folder
-            shutil.copy2(patLvDiv_train/cellpath, augm_patLvDiv_train)
-            print(f'Copy {patLvDiv_train/cellpath} TO {augm_patLvDiv_train}/{cellpath}')
+        #    shutil.copy2(patLvDiv_train/cellpath, augm_patLvDiv_train)
+        #    print(f'Copy {patLvDiv_train/cellpath} TO {augm_patLvDiv_train}/{cellpath}')
 
         #Read all cells in 'patLvDiv_train' folder
         srcTrain = os.listdir(patLvDiv_train)
+
+        train_df = pd.DataFrame()
 
         #Until 'augm_patLvDiv_train' folder didn't reach desired size...
         while len(os.listdir(augm_patLvDiv_train)) < trainSize:
@@ -302,7 +375,12 @@ def createDatasets(trainSize, validationSize):
             #Create an augmented cell based on randomly choose from 'patLvDiv_train' folder
             img = patLvDiv_train / rndChoice
             try:
-                img = genAugmentedImage(cv2.imread(str(img)))
+                augmentationType = ''
+                aux = genAugmentedImage(cv2.imread(str(img)), img.name)
+                img = aux[0]
+                df = pd.DataFrame(aux[1])
+                train_df = train_df.append(df)
+                train_df.to_csv(f'AugmentationApplied/AugmentationTypesApplied_Train.csv')
             except Exception as e:
                 print(str(e))
                 #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
@@ -324,11 +402,23 @@ def createDatasets(trainSize, validationSize):
                 elif 'hem.bmp' in rndChoice:
                     countHEM -= 1
 
+        #cols = train_df.columns.tolist()
+        #cols.remove('cellType(ALL=1, HEM=-1)')
+        #cols = ['cellType(ALL=1, HEM=-1)'] + cols
+        #train_df = train_df[cols]
+        #train_df.to_csv(f'AugmentationApplied/train.csv')
+        
+        train_df = pd.DataFrame()
+
     #Thread to create 'Augm_patLvDiv_valid'
     def createAugm_patLvDiv_valid():
+        def __init__(self):
+            self.train_df = pd.DataFrame()
+            pass
+
         countALL = 0 #Count how many ALL cells has in 'augm_patLvDiv_train'
         countHEM = 0 #Count how many HEM cells has in 'augm_patLvDiv_train'
-
+        
         #For each cell in 'patLvDiv_valid' folder
         for cellpath in os.listdir(patLvDiv_valid):
             if 'all.bmp' in cellpath:
@@ -360,7 +450,10 @@ def createDatasets(trainSize, validationSize):
             #Create an augmented cell based on randomly choose from 'patLvDiv_valid' folder
             img = patLvDiv_valid / rndChoice
             try:
-                img = genAugmentedImage(cv2.imread(str(img)))
+                augmentedImgName = f'AugmentedImg_{np.random.randint(1001, 9999)}_{rndChoice}'
+                (img, df) = genAugmentedImage(cv2.imread(str(img)), img.name, augmentedImgName, -1)
+                train_df = train_df.append(df)
+                train_df.to_csv(f'AugmentationApplied/AugmentationTypesApplied_Valid.csv')
             except Exception as e:
                 print(str(e))
                 #Logic to keep a balanced dataset (number of ALL cells equal to number of HEM cells)
@@ -371,7 +464,7 @@ def createDatasets(trainSize, validationSize):
                 continue
 
             #Save the augmented image into folder 'augm_patLvDiv_valid'
-            savePath = augm_patLvDiv_valid / f'AugmentedImg_{np.random.randint(1001, 9999)}_{rndChoice}'
+            savePath = augm_patLvDiv_valid / augmentedImgName
             if not os.path.isfile(savePath):
                 cv2.imwrite(str(savePath), img)
                 print(f'Created {savePath}')
@@ -381,19 +474,26 @@ def createDatasets(trainSize, validationSize):
                     countALL -= 1
                 elif 'hem.bmp' in rndChoice:
                     countHEM -= 1
+                    
+        #Create folder 'data'
+        if not os.path.exists(Path('AugmentationApplied/')):
+            os.mkdir(Path('AugmentationApplied/'))
+
+        #train_df.to_csv(f'AugmentationApplied/valid.csv')
+        #train_df = pd.DataFrame()
 
     #Create Augmented Datasets
-    pTrain = multiprocessing.Process(name='Train Augm', target=createAugm_patLvDiv_train)
-    pValid = multiprocessing.Process(name='Validation Augm', target=createAugm_patLvDiv_valid)
+    pTrain = multiprocessing.Process(name='Train Augm', target=createAugm_patLvDiv_train())
+    #pValid = multiprocessing.Process(name='Validation Augm', target=createAugm_patLvDiv_valid())
     pTrain.start()
-    pValid.start()
+    #pValid.start()
 
     pTrain.join()
-    pValid.join()
+    #pValid.join()
 
 
 def folderData(folderPath):
-    folderName = str(folderPath).split('/')[1]
+    folderName = str(folderPath).split('\\')[1]
     print(f'Folder Name: {folderName}')
 
     countALL = countHEM = countAugm_ALL_Imgs = countAugm_HEM_Imgs = 0
@@ -439,13 +539,14 @@ def folderData(folderPath):
 
 
 if __name__ == '__main__':
-    #createDatasets(trainSize=40000, validationSize=10000)
-    #folderData(Path('data/augm_patLvDiv_train/'))
-    #folderData(Path('data/augm_patLvDiv_valid/'))
+    train_df = pd.DataFrame()
+    createDatasets(trainSize=5, validationSize=1)
+    folderData(Path('data/augm_patLvDiv_train'))
+    #folderData(Path('data/augm_patLvDiv_valid'))
     #folderData(Path('data/patLvDiv_test/'))
     #30000 = 25Gb
     #40000 = 31Gb
-    """
+    
     folderData(Path('data/augm_patLvDiv_train/'))
     Path('data/augm_patLvDiv_valid/')
     Path('data/augm_rndDiv_train/')
@@ -480,6 +581,6 @@ if __name__ == '__main__':
     _, _, _ = folderData(Path('data/patLvDiv_train/'))
     _, _, _ = folderData(Path('data/patLvDiv_valid/'))
     _, _, _ = folderData(Path('data/patLvDiv_test/'))
-    """
+    
 
     print(f"\nEnd Script!\n{'#'*50}")

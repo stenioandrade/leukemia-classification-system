@@ -627,9 +627,13 @@ def createAugmPatLvDivDataframe():
         test_df = test_df[cols]
         test_df.to_csv(f'feature-dataframes/PatLvDiv_TEST-AllFeats_{test_df.shape[1]-1}-Features_{test_df.shape[0]}-images.csv')
     
-    p0 = multiprocessing.Process(name='train_AugmPatLvDiv', target=createTrainDataframe)
-    p1 = multiprocessing.Process(name='valid_AugmPatLvDiv',target=createValidDataframe)
-    p2 = multiprocessing.Process(name='test_PatLvDiv',target=createTestDataframe)
+    #Create folder 'feature-dataframes'
+    if not os.path.exists(Path('feature-dataframes/')):
+        os.mkdir(Path('feature-dataframes/'))
+
+    p0 = multiprocessing.Process(name='train_AugmPatLvDiv', target=createTrainDataframe())
+    p1 = multiprocessing.Process(name='valid_AugmPatLvDiv',target=createValidDataframe())
+    p2 = multiprocessing.Process(name='test_PatLvDiv',target=createTestDataframe())
     p0.start()
     p1.start()
     p2.start()

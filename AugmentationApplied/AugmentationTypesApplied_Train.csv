@@ -1,0 +1,16 @@
+,ImgName,AugIndex,AugmentedImgName,Flip and WarpAffine,Rotation,ShearImage,SaltPepperNoise,GaussianBlur
+0,UID_13_10_2_all.bmp,0,AugmentedImg_3720_UID_13_10_2_all.bmp,True,True,True,False,False
+0,UID_13_10_2_all.bmp,1,AugmentedImg_8343_UID_13_10_2_all.bmp,True,True,True,False,True
+0,UID_13_10_2_all.bmp,2,AugmentedImg_7873_UID_13_10_2_all.bmp,True,True,False,True,True
+0,UID_13_10_2_all.bmp,3,AugmentedImg_6929_UID_13_10_2_all.bmp,True,True,True,False,True
+0,UID_13_10_2_all.bmp,4,AugmentedImg_9506_UID_13_10_2_all.bmp,True,True,False,True,True
+0,UID_13_11_1_all.bmp,0,AugmentedImg_4236_UID_13_11_1_all.bmp,True,True,False,False,False
+0,UID_13_11_1_all.bmp,1,AugmentedImg_1595_UID_13_11_1_all.bmp,True,True,False,False,False
+0,UID_13_11_1_all.bmp,2,AugmentedImg_7218_UID_13_11_1_all.bmp,True,True,False,True,True
+0,UID_13_11_1_all.bmp,3,AugmentedImg_7714_UID_13_11_1_all.bmp,True,True,True,False,True
+0,UID_13_11_1_all.bmp,4,AugmentedImg_2303_UID_13_11_1_all.bmp,True,True,False,False,False
+0,UID_13_12_1_all.bmp,0,AugmentedImg_7746_UID_13_12_1_all.bmp,True,True,False,False,False
+0,UID_13_12_1_all.bmp,1,AugmentedImg_4626_UID_13_12_1_all.bmp,True,True,True,False,True
+0,UID_13_12_1_all.bmp,2,AugmentedImg_1866_UID_13_12_1_all.bmp,True,True,True,False,False
+0,UID_13_12_1_all.bmp,3,AugmentedImg_1161_UID_13_12_1_all.bmp,True,True,True,False,False
+0,UID_13_12_1_all.bmp,4,AugmentedImg_2347_UID_13_12_1_all.bmp,True,True,False,True,True
